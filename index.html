@@ -4,31 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة تحكم الإدارة</title>
-    <!-- تضمين مكتبات Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore.js"></script>
-    <script>
-        // تكوين Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyCFWrAqn83uXEnOhCsuVCk6xJZHnEN2bjs",
-            authDomain: "new-project-bd577.firebaseapp.com",
-            projectId: "new-project-bd577",
-            storageBucket: "new-project-bd577.appspot.com",
-            messagingSenderId: "927819600447",
-            appId: "1:927819600447:web:16e67235b426efec8dbd0a",
-            measurementId: "G-E45HZ79HKR"
-        };
-
-        // تهيئة Firebase
-        const app = firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore(app);
-    </script>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            direction: rtl;
+            direction: rtl; /* اتجاه النص من اليمين لليسار */
         }
         .container {
             padding: 20px;
@@ -70,6 +51,25 @@
             object-fit: cover;
         }
     </style>
+    <!-- Firebase SDK Setup -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCFWrAqn83uXEnOhCsuVCk6xJZHnEN2bjs",  // Use your actual API key here
+            authDomain: "new-project-bd577.firebaseapp.com",
+            projectId: "new-project-bd577",
+            storageBucket: "new-project-bd577.appspot.com",
+            messagingSenderId: "927819600447",
+            appId: "1:927819600447:web:abc123def456gh789",  // Replace with your appId from Firebase Console
+            measurementId: "G-XYZ123ABC"
+        };
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore(app);
+    </script>
 </head>
 <body>
     <div class="container">
@@ -174,7 +174,7 @@
     </div>
 
     <script>
-        // وظيفة إضافة البيانات إلى Firebase
+        // Function to add data to Firestore
         function addData() {
             const country = document.getElementById('country').value;
             const city = document.getElementById('city').value;
@@ -190,7 +190,7 @@
             const airportPickupFees = document.getElementById('airportPickupFees').value;
 
             if (country && city && school && course && weeks && studyFees && accommodation && accommodationFees && insuranceFees && airportPickupFees) {
-                db.collection("schooldata").add({
+                const data = {
                     country,
                     city,
                     school,
@@ -203,94 +203,73 @@
                     accommodationFees,
                     insuranceFees,
                     airportPickupFees
-                })
-                .then(() => {
-                    console.log("Data added successfully!");
-                    displayData();  // تحديث واجهة العرض بعد إضافة البيانات
-                    clearForm();  // مسح البيانات المدخلة في النموذج
-                })
-                .catch((error) => {
-                    console.error("Error adding data: ", error);
-                });
+                };
+
+                // Add data to Firestore
+                db.collection("schools").add(data)
+                    .then(() => {
+                        alert("تم إضافة البيانات بنجاح!");
+                        displayData();  // Refresh the data table
+                        clearForm();  // Clear the form after submission
+                    })
+                    .catch((error) => {
+                        console.error("خطأ في إضافة البيانات: ", error);
+                    });
+            } else {
+                alert("يرجى ملء جميع الحقول.");
             }
         }
 
-        function clearForm() {
-            document.getElementById('country').value = '';
-            document.getElementById('city').value = '';
-            document.getElementById('school').value = '';
-            document.getElementById('schoolImage').value = '';
-            document.getElementById('schoolDescription').value = '';
-            document.getElementById('course').value = '';
-            document.getElementById('weeks').value = '';
-            document.getElementById('studyFees').value = '';
-            document.getElementById('accommodation').value = '';
-            document.getElementById('accommodationFees').value = '';
-            document.getElementById('insuranceFees').value = '';
-            document.getElementById('airportPickupFees').value = '';
-        }
-
-        // وظيفة عرض البيانات من Firestore
+        // Function to display data from Firestore
         function displayData() {
-            const tableBody = document.querySelector("#dataTable tbody");
+            const tableBody = document.getElementById('dataTable').querySelector('tbody');
             tableBody.innerHTML = '';
-            db.collection("schooldata").get().then((querySnapshot) => {
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    const row = document.createElement("tr");
-                    row.innerHTML = `
-                        <td>${data.country}</td>
-                        <td>${data.school}</td>
-                        <td><img src="${data.schoolImage}" class="image" /></td>
-                        <td>${data.schoolDescription}</td>
-                        <td>${data.course}</td>
-                        <td>${data.weeks}</td>
-                        <td>${data.studyFees}</td>
-                        <td>${data.accommodation}</td>
-                        <td>${data.accommodationFees}</td>
-                        <td>${data.insuranceFees}</td>
-                        <td>${data.airportPickupFees}</td>
-                        <td><button onclick="deleteData('${doc.id}')">حذف</button></td>
-                    `;
-                    tableBody.appendChild(row);
+
+            // Get data from Firestore
+            db.collection("schools").get()
+                .then((querySnapshot) => {
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        const row = `
+                            <tr>
+                                <td>${data.country}</td>
+                                <td>${data.school}</td>
+                                <td><img src="${data.schoolImage}" alt="${data.school}" class="image"></td>
+                                <td>${data.schoolDescription}</td>
+                                <td>${data.course}</td>
+                                <td>${data.weeks}</td>
+                                <td>${data.studyFees}</td>
+                                <td>${data.accommodation}</td>
+                                <td>${data.accommodationFees}</td>
+                                <td>${data.insuranceFees}</td>
+                                <td>${data.airportPickupFees}</td>
+                                <td>
+                                    <button onclick="editData('${doc.id}')">تعديل</button>
+                                    <button onclick="deleteData('${doc.id}')">حذف</button>
+                                </td>
+                            </tr>
+                        `;
+                        tableBody.innerHTML += row;
+                    });
+                })
+                .catch((error) => {
+                    console.error("خطأ في جلب البيانات: ", error);
                 });
-            });
         }
 
-        // وظيفة حذف البيانات من Firestore
+        // Function to delete data
         function deleteData(id) {
-            db.collection("schooldata").doc(id).delete().then(() => {
-                console.log("Data deleted successfully!");
-                displayData();
-            }).catch((error) => {
-                console.error("Error deleting data: ", error);
-            });
-        }
-
-        // وظيفة البحث في البيانات
-        function searchData() {
-            const searchQuery = document.getElementById('search').value.toLowerCase();
-            const rows = document.querySelectorAll("#dataTable tbody tr");
-
-            rows.forEach(row => {
-                const cells = row.querySelectorAll("td");
-                let found = false;
-                cells.forEach(cell => {
-                    if (cell.textContent.toLowerCase().includes(searchQuery)) {
-                        found = true;
-                    }
+            db.collection("schools").doc(id).delete()
+                .then(() => {
+                    alert("تم حذف البيانات بنجاح!");
+                    displayData();  // Refresh the data table
+                })
+                .catch((error) => {
+                    console.error("خطأ في حذف البيانات: ", error);
                 });
-                row.style.display = found ? "" : "none";
-            });
         }
 
-        // استعراض المزيد من البيانات
-        function showMore() {
-            console.log("عرض المزيد من البيانات");
-        }
-
-        // تحميل البيانات عند تحميل الصفحة
-        window.onload = displayData;
+        displayData();  // Load data on page load
     </script>
 </body>
 </html>
