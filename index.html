@@ -4,6 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة تحكم الإدارة</title>
+    <!-- إضافة مكتبة Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-firestore.js"></script>
+
+    <script>
+        // إعداد Firebase باستخدام البيانات الخاصة بمشروعك
+        const firebaseConfig = {
+            apiKey: "AIzaSyCFWrAqn83uXEnOhCsuVCk6xJZHnEN2bjs",
+            authDomain: "new-project-bd577.firebaseapp.com",
+            projectId: "new-project-bd577",
+            storageBucket: "new-project-bd577.appspot.com",
+            messagingSenderId: "927819600447",
+            appId: "1:927819600447:web:62f7b0fe5648be01f3cb0d"
+        };
+
+        // تهيئة Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore(); // الوصول إلى Firestore
+    </script>
+
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -51,25 +71,6 @@
             object-fit: cover;
         }
     </style>
-    <!-- Firebase SDK Setup -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
-    <script>
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyCFWrAqn83uXEnOhCsuVCk6xJZHnEN2bjs",  // Use your actual API key here
-            authDomain: "new-project-bd577.firebaseapp.com",
-            projectId: "new-project-bd577",
-            storageBucket: "new-project-bd577.appspot.com",
-            messagingSenderId: "927819600447",
-            appId: "1:927819600447:web:abc123def456gh789",  // Replace with your appId from Firebase Console
-            measurementId: "G-XYZ123ABC"
-        };
-
-        // Initialize Firebase
-        const app = firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore(app);
-    </script>
 </head>
 <body>
     <div class="container">
@@ -172,11 +173,9 @@
             <button class="show-more" onclick="showMore()">عرض المزيد</button>
         </div>
     </div>
-
+    
     <script>
-        let data = JSON.parse(localStorage.getItem('dashboardData')) || [];
-        let isShowingAll = false;
-
+        // دالة لإضافة البيانات إلى Firestore
         function addData() {
             const country = document.getElementById('country').value;
             const city = document.getElementById('city').value;
@@ -191,8 +190,10 @@
             const insuranceFees = document.getElementById('insuranceFees').value;
             const airportPickupFees = document.getElementById('airportPickupFees').value;
 
+            // التحقق من البيانات المدخلة
             if (country && city && school && course && weeks && studyFees && accommodation && accommodationFees && insuranceFees && airportPickupFees) {
-                data.push({
+                // إضافة البيانات إلى Firestore
+                db.collection("schoolData").add({
                     country,
                     city,
                     school,
@@ -205,13 +206,68 @@
                     accommodationFees,
                     insuranceFees,
                     airportPickupFees
+                })
+                .then(() => {
+                    alert("تم إضافة البيانات بنجاح!");
+                    clearForm(); // مسح البيانات المدخلة
+                    displayData(); // تحديث عرض البيانات
+                })
+                .catch((error) => {
+                    console.error("خطأ في إضافة البيانات: ", error);
                 });
-                localStorage.setItem('dashboardData', JSON.stringify(data));
-                displayData();
-                clearForm();
+            } else {
+                alert("يرجى ملء جميع الحقول.");
             }
         }
 
+        // دالة لعرض البيانات المسترجعة من Firestore في الجدول
+        function displayData() {
+            const tableBody = document.getElementById('dataTable').querySelector('tbody');
+            tableBody.innerHTML = '';  // مسح البيانات السابقة في الجدول
+
+            // استرجاع البيانات من Firestore
+            db.collection("schoolData").get().then((querySnapshot) => {
+                querySnapshot.forEach((doc) => {
+                    const entry = doc.data();  // الحصول على بيانات كل مستند
+                    const row = `
+                        <tr>
+                            <td>${entry.country}</td>
+                            <td>${entry.school}</td>
+                            <td><img src="${entry.schoolImage}" alt="${entry.school}" class="image"></td>
+                            <td>${entry.schoolDescription}</td>
+                            <td>${entry.course}</td>
+                            <td>${entry.weeks}</td>
+                            <td>${entry.studyFees}</td>
+                            <td>${entry.accommodation}</td>
+                            <td>${entry.accommodationFees}</td>
+                            <td>${entry.insuranceFees}</td>
+                            <td>${entry.airportPickupFees}</td>
+                            <td>
+                                <button onclick="editData('${doc.id}')">تعديل</button>
+                                <button onclick="deleteData('${doc.id}')">حذف</button>
+                            </td>
+                        </tr>
+                    `;
+                    tableBody.innerHTML += row;
+                });
+            }).catch((error) => {
+                console.error("خطأ في استرجاع البيانات: ", error);
+            });
+        }
+
+        // دالة للبحث عن البيانات
+        function searchData() {
+            const query = document.getElementById('search').value.toLowerCase();
+            const rows = document.querySelectorAll('#dataTable tbody tr');
+
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                const found = Array.from(cells).some(cell => cell.textContent.toLowerCase().includes(query));
+                row.style.display = found ? '' : 'none';
+            });
+        }
+
+        // دالة لمسح البيانات المدخلة
         function clearForm() {
             document.getElementById('country').value = '';
             document.getElementById('city').value = '';
@@ -227,108 +283,15 @@
             document.getElementById('airportPickupFees').value = '';
         }
 
-        function displayData() {
-            const tableBody = document.getElementById('dataTable').querySelector('tbody');
-            tableBody.innerHTML = '';
-
-            const dataToDisplay = isShowingAll ? data : data.slice(0, 1);
-
-            dataToDisplay.forEach((entry, index) => {
-                const row = `
-                    <tr>
-                        <td>${entry.country}</td>
-                        <td>${entry.school}</td>
-                        <td><img src="${entry.schoolImage}" alt="${entry.school}" class="image"></td>
-                        <td>${entry.schoolDescription}</td>
-                        <td>${entry.course}</td>
-                        <td>${entry.weeks}</td>
-                        <td>${entry.studyFees}</td>
-                        <td>${entry.accommodation}</td>
-                        <td>${entry.accommodationFees}</td>
-                        <td>${entry.insuranceFees}</td>
-                        <td>${entry.airportPickupFees}</td>
-                        <td>
-                            <button onclick="editData(${index})">تعديل</button>
-                            <button onclick="deleteData(${index})">حذف</button>
-                        </td>
-                    </tr>
-                `;
-                tableBody.innerHTML += row;
-            });
-        }
-
+        // دالة لعرض المزيد من البيانات في الجدول
         function showMore() {
-            isShowingAll = true;
-            displayData();
-            document.querySelector('.show-more').style.display = 'none';
-        }
-
-        function editData(index) {
-            const entry = data[index];
-            document.getElementById('country').value = entry.country;
-            document.getElementById('city').value = entry.city;
-            document.getElementById('school').value = entry.school;
-            document.getElementById('schoolImage').value = entry.schoolImage;
-            document.getElementById('schoolDescription').value = entry.schoolDescription;
-            document.getElementById('course').value = entry.course;
-            document.getElementById('weeks').value = entry.weeks;
-            document.getElementById('studyFees').value = entry.studyFees;
-            document.getElementById('accommodation').value = entry.accommodation;
-            document.getElementById('accommodationFees').value = entry.accommodationFees;
-            document.getElementById('insuranceFees').value = entry.insuranceFees;
-            document.getElementById('airportPickupFees').value = entry.airportPickupFees;
-
-            data.splice(index, 1);
-            localStorage.setItem('dashboardData', JSON.stringify(data));
             displayData();
         }
 
-        function deleteData(index) {
-            data.splice(index, 1);
-            localStorage.setItem('dashboardData', JSON.stringify(data));
+        // استدعاء الدالة لعرض البيانات عند تحميل الصفحة
+        window.onload = function() {
             displayData();
-        }
-
-        function searchData() {
-            const searchTerm = document.getElementById('search').value.toLowerCase();
-            const filteredData = data.filter(entry =>
-                entry.country.toLowerCase().includes(searchTerm) ||
-                entry.city.toLowerCase().includes(searchTerm) ||
-                entry.school.toLowerCase().includes(searchTerm) ||
-                entry.course.toLowerCase().includes(searchTerm)
-            );
-            displayFilteredData(filteredData);
-        }
-
-        function displayFilteredData(filteredData) {
-            const tableBody = document.getElementById('dataTable').querySelector('tbody');
-            tableBody.innerHTML = '';
-
-            filteredData.forEach((entry, index) => {
-                const row = `
-                    <tr>
-                        <td>${entry.country}</td>
-                        <td>${entry.school}</td>
-                        <td><img src="${entry.schoolImage}" alt="${entry.school}" class="image"></td>
-                        <td>${entry.schoolDescription}</td>
-                        <td>${entry.course}</td>
-                        <td>${entry.weeks}</td>
-                        <td>${entry.studyFees}</td>
-                        <td>${entry.accommodation}</td>
-                        <td>${entry.accommodationFees}</td>
-                        <td>${entry.insuranceFees}</td>
-                        <td>${entry.airportPickupFees}</td>
-                        <td>
-                            <button onclick="editData(${index})">تعديل</button>
-                            <button onclick="deleteData(${index})">حذف</button>
-                        </td>
-                    </tr>
-                `;
-                tableBody.innerHTML += row;
-            });
-        }
-
-        displayData();
+        };
     </script>
 </body>
 </html>
